@@ -1,797 +1,758 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>垃圾分类智能助手 - EcoBot</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0d1a14;
-      --bg-secondary: #122218;
-      --fg: #e6f4ea;
-      --muted: #6b9b7a;
-      --accent: #00e676;
-      --accent-dim: #00c853;
-      --card: rgba(18, 38, 28, 0.72);
-      --border: rgba(0, 230, 118, 0.14);
-      --recyclable: #29b6f6;
-      --hazardous: #ef5350;
-      --kitchen: #9ccc65;
-      --other: #90a4ae;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: 'Noto Sans SC', sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    .font-display { font-family: 'Space Grotesk', sans-serif; }
-
-    /* 背景动效 */
-    .bg-visuals {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    .glow-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.45;
-      animation: orbFloat 25s ease-in-out infinite;
-    }
-
-    .orb-1 {
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(0, 230, 118, 0.4) 0%, transparent 70%);
-      top: -200px;
-      right: -100px;
-    }
-
-    .orb-2 {
-      width: 450px;
-      height: 450px;
-      background: radial-gradient(circle, rgba(41, 182, 246, 0.3) 0%, transparent 70%);
-      bottom: 10%;
-      left: -150px;
-      animation-delay: -8s;
-    }
-
-    .orb-3 {
-      width: 380px;
-      height: 380px;
-      background: radial-gradient(circle, rgba(156, 204, 101, 0.25) 0%, transparent 70%);
-      top: 45%;
-      right: 5%;
-      animation-delay: -16s;
-    }
-
-    @keyframes orbFloat {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(50px, -50px) scale(1.1); }
-      66% { transform: translate(-40px, 40px) scale(0.95); }
-    }
-
-    .grid-bg {
-      position: absolute;
-      inset: 0;
-      background-image: 
-        linear-gradient(rgba(0, 230, 118, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 230, 118, 0.035) 1px, transparent 1px);
-      background-size: 65px 65px;
-      mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 75%);
-    }
-
-    .noise-layer {
-      position: absolute;
-      inset: 0;
-      opacity: 0.025;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    }
-
-    /* 玻璃态卡片 */
-    .glass {
-      background: var(--card);
-      backdrop-filter: blur(28px);
-      border: 1px solid var(--border);
-      border-radius: 26px;
-    }
-
-    /* 聊天容器 */
-    .chat-wrapper {
-      height: calc(100vh - 160px);
-      max-height: 680px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .chat-messages::-webkit-scrollbar { width: 5px; }
-    .chat-messages::-webkit-scrollbar-track { background: transparent; }
-    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* 消息样式 */
-    .msg {
-      max-width: 90%;
-      animation: msgSlide 0.38s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes msgSlide {
-      from { opacity: 0; transform: translateY(18px) scale(0.97); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .msg-user {
-      margin-left: auto;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
-      color: var(--bg);
-      border-radius: 22px 22px 6px 22px;
-      padding: 15px 24px;
-      font-weight: 500;
-    }
-
-    .msg-bot {
-      margin-right: auto;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 22px 22px 22px 6px;
-      padding: 20px 24px;
-    }
-
-    /* 分类标签 */
-    .cat-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      border-radius: 14px;
-      font-weight: 700;
-      font-size: 15px;
-      margin: 12px 0;
-    }
-
-    .cat-recyclable {
-      background: rgba(41, 182, 246, 0.2);
-      color: #4fc3f7;
-      border: 1px solid rgba(41, 182, 246, 0.4);
-    }
-
-    .cat-hazardous {
-      background: rgba(239, 83, 80, 0.2);
-      color: #ff8a80;
-      border: 1px solid rgba(239, 83, 80, 0.4);
-    }
-
-    .cat-kitchen {
-      background: rgba(156, 204, 101, 0.2);
-      color: #c5e1a5;
-      border: 1px solid rgba(156, 204, 101, 0.4);
-    }
-
-    .cat-other {
-      background: rgba(144, 164, 174, 0.2);
-      color: #b0bec5;
-      border: 1px solid rgba(144, 164, 174, 0.4);
-    }
-
-    /* 输入区域 */
-    .input-area {
-      padding: 20px 24px;
-      border-top: 1px solid var(--border);
-      background: rgba(13, 26, 20, 0.65);
-      border-radius: 0 0 26px 26px;
-    }
-
-    .chat-input {
-      background: rgba(0, 0, 0, 0.38);
-      border: 2px solid var(--border);
-      border-radius: 18px;
-      color: var(--fg);
-      transition: all 0.32s ease;
-    }
-
-    .chat-input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 5px rgba(0, 230, 118, 0.18);
-    }
-
-    .chat-input::placeholder { color: var(--muted); }
-
-    /* 按钮 */
-    .btn-send {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
-      color: var(--bg);
-      border-radius: 16px;
-      font-weight: 700;
-      transition: all 0.32s ease;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-send:hover:not(:disabled) {
-      transform: scale(1.07);
-      box-shadow: 0 10px 32px rgba(0, 230, 118, 0.35);
-    }
-
-    .btn-send:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .btn-voice {
-      background: transparent;
-      border: 2px solid var(--border);
-      border-radius: 16px;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.32s ease;
-    }
-
-    .btn-voice:hover { border-color: var(--accent); color: var(--accent); }
-
-    .btn-voice.recording {
-      background: rgba(239, 83, 80, 0.2);
-      border-color: #ef5350;
-      color: #ef5350;
-      animation: recordPulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes recordPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.5); }
-      50% { box-shadow: 0 0 0 14px rgba(239, 83, 80, 0); }
-    }
-
-    /* 快捷按钮 */
-    .quick-btn {
-      background: rgba(0, 230, 118, 0.1);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 10px 20px;
-      font-size: 14px;
-      color: var(--fg);
-      cursor: pointer;
-      transition: all 0.32s ease;
-      white-space: nowrap;
-    }
-
-    .quick-btn:hover {
-      background: rgba(0, 230, 118, 0.18);
-      border-color: var(--accent);
-      transform: translateY(-3px);
-    }
-
-    /* 打字指示器 */
-    .typing-area { display: flex; gap: 6px; padding: 20px 24px; }
-
-    .typing-dot {
-      width: 10px;
-      height: 10px;
-      background: var(--muted);
-      border-radius: 50%;
-      animation: typingBounce 1.4s ease-in-out infinite;
-    }
-
-    .typing-dot:nth-child(2) { animation-delay: 0.18s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.36s; }
-
-    @keyframes typingBounce {
-      0%, 55%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-14px); }
-    }
-
-    /* 示例列表 */
-    .example-list {
-      margin-top: 14px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-    }
-
-    .example-chip {
-      font-size: 13px;
-      padding: 5px 14px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      margin: 3px;
-      display: inline-block;
-    }
-
-    /* 侧边栏 */
-    .sidebar-item {
-      transition: all 0.3s ease;
-    }
-
-    .sidebar-item:hover {
-      background: rgba(0, 230, 118, 0.12);
-    }
-
-    .sidebar-item.active {
-      background: rgba(0, 230, 118, 0.18);
-      border-left: 3px solid var(--accent);
-    }
-
-    /* 统计数字 */
-    .stat-num {
-      background: linear-gradient(135deg, var(--accent) 0%, #29b6f6 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* 响应式 */
-    @media (max-width: 768px) {
-      .chat-wrapper { height: calc(100vh - 140px); max-height: none; }
-      .desktop-only { display: none; }
-      .msg { max-width: 96%; }
-    }
-
-    /* 减少动效 */
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- 背景效果 -->
-  <div class="bg-visuals">
-    <div class="glow-orb orb-1"></div>
-    <div class="glow-orb orb-2"></div>
-    <div class="glow-orb orb-3"></div>
-    <div class="grid-bg"></div>
-    <div class="noise-layer"></div>
-  </div>
-
-  <!-- 主布局 -->
-  <div class="relative z-10 flex h-screen">
-    
-    <!-- 侧边栏 -->
-    <aside class="desktop-only w-72 border-r border-[var(--border)] p-5 flex flex-col">
-      <div class="mb-8">
-        <div class="flex items-center gap-4 mb-3">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-emerald-600 flex items-center justify-center shadow-lg shadow-[rgba(0,230,118,0.25)]">
-            <svg class="w-7 h-7 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="font-display font-bold text-xl">EcoBot</h1>
-            <p class="text-xs text-[var(--muted)]">智能垃圾分类助手</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 分类导航 -->
-      <div class="mb-6">
-        <p class="text-xs text-[var(--muted)] uppercase tracking-widest mb-4 font-medium">快速查询分类</p>
-        <nav class="space-y-2">
-          <button class="sidebar-item w-full text-left px-4 py-3 rounded-xl flex items-center gap-4" data-category="recyclable">
-            <span class="w-3 h-3 rounded-full bg-[#29b6f6] shadow-lg shadow-[#29b6f6]/35"></span>
-            <span>可回收物</span>
-            <span class="ml-auto text-xs text-[var(--muted)]">蓝桶</span>
-          </button>
-          <button class="sidebar-item w-full text-left px-4 py-3 rounded-xl flex items-center gap-4" data-category="hazardous">
-            <span class="w-3 h-3 rounded-full bg-[#ef5350] shadow-lg shadow-[#ef5350]/35"></span>
-            <span>有害垃圾</span>
-            <span class="ml-auto text-xs text-[var(--muted)]">红桶</span>
-          </button>
-          <button class="sidebar-item w-full text-left px-4 py-3 rounded-xl flex items-center gap-4" data-category="kitchen">
-            <span class="w-3 h-3 rounded-full bg-[#9ccc65] shadow-lg shadow-[#9ccc65]/35"></span>
-            <span>厨余垃圾</span>
-            <span class="ml-auto text-xs text-[var(--muted)]">绿桶</span>
-          </button>
-          <button class="sidebar-item w-full text-left px-4 py-3 rounded-xl flex items-center gap-4" data-category="other">
-            <span class="w-3 h-3 rounded-full bg-[#90a4ae] shadow-lg shadow-[#90a4ae]/35"></span>
-            <span>其他垃圾</span>
-            <span class="ml-auto text-xs text-[var(--muted)]">灰桶</span>
-          </button>
-        </nav>
-      </div>
-
-      <!-- 数据统计 -->
-      <div class="mt-auto">
-        <div class="glass p-5 rounded-2xl">
-          <p class="text-xs text-[var(--muted)] mb-4 font-medium">数据库统计</p>
-          <div class="grid grid-cols-2 gap-5 text-center">
-            <div>
-              <p class="stat-num text-3xl font-bold font-display">200+</p>
-              <p class="text-xs text-[var(--muted)] mt-1">物品数据</p>
-            </div>
-            <div>
-              <p class="stat-num text-3xl font-bold font-display">4</p>
-              <p class="text-xs text-[var(--muted)] mt-1">分类标准</p>
-            </div>
-          </div>
-        </div>
-        <p class="text-xs text-center text-[var(--muted)] mt-4 opacity-70">数据参考国家标准</p>
-      </div>
-    </aside>
-
-    <!-- 主聊天区域 -->
-    <main class="flex-1 flex flex-col p-5">
-      <div class="glass chat-wrapper w-full max-w-3xl mx-auto flex flex-col">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能垃圾分类助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Playfair Display', serif; }
         
-        <!-- 头部 -->
-        <header class="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-3 h-3 rounded-full bg-[var(--accent)] animate-pulse shadow-lg shadow-[rgba(0,230,118,0.3)]"></div>
-            <span class="text-sm text-[var(--muted)]">在线 · 随时为您解答垃圾分类问题</span>
-          </div>
-          <button id="clearBtn" class="text-[var(--muted)] hover:text-[var(--accent)] text-sm transition-colors font-medium">
-            清空对话
-          </button>
-        </header>
-
-        <!-- 消息区域 -->
-        <div id="chatMessages" class="chat-messages flex-1 space-y-5">
-          <!-- 欢迎消息 -->
-          <div class="msg msg-bot">
-            <div class="flex items-start gap-4">
-              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-[rgba(0,230,118,0.25)]">
-                <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                </svg>
-              </div>
-              <div class="flex-1">
-                <p class="text-xs text-[var(--muted)] mb-2 font-medium">EcoBot 智能助手</p>
-                <p class="leading-relaxed mb-3">你好！我是EcoBot垃圾分类智能助手，我可以帮你查询任何物品的垃圾分类。</p>
-                <p class="leading-relaxed text-[var(--muted)] text-sm mb-3">你可以这样问我：</p>
-                <div class="flex flex-wrap gap-2">
-                  <button class="quick-btn text-xs" data-query="电池是什么垃圾">电池是什么垃圾？</button>
-                  <button class="quick-btn text-xs" data-query="塑料瓶怎么扔">塑料瓶怎么扔？</button>
-                  <button class="quick-btn text-xs" data-query="剩饭剩菜分类">剩饭剩菜属于什么？</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 输入区域 -->
-        <div class="input-area">
-          <div class="flex gap-3 mb-4">
-            <button id="voiceBtn" class="btn-voice p-4 flex-shrink-0" title="语音输入">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-              </svg>
-            </button>
-            <input 
-              type="text" 
-              id="chatInput" 
-              class="chat-input flex-1 px-5 py-4 text-base"
-              placeholder="输入物品名称或问题，如：电池是什么垃圾？"
-              autocomplete="off"
-            >
-            <button id="sendBtn" class="btn-send px-8 text-base">发送</button>
-          </div>
-          
-          <!-- 快捷问题 -->
-          <div class="flex flex-wrap gap-2">
-            <button class="quick-btn text-xs" data-query="可回收物有哪些">可回收物有哪些</button>
-            <button class="quick-btn text-xs" data-query="有害垃圾包括什么">有害垃圾包括什么</button>
-            <button class="quick-btn text-xs" data-query="厨余垃圾怎么处理">厨余垃圾怎么处理</button>
-            <button class="quick-btn text-xs" data-query="其他垃圾的定义">其他垃圾的定义</button>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    // ==================== 垃圾分类数据库 ====================
-    const GARBAGE_DB = {
-      // 可回收物
-      '塑料瓶': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，压扁后投放，瓶盖可一起回收', examples: ['矿泉水瓶', '饮料瓶', '洗发水瓶'] },
-      '矿泉水瓶': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，压扁后投放' },
-      '饮料瓶': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，压扁后投放' },
-      '废纸': { cat: 'recyclable', name: '可回收物', tip: '保持干燥整洁，捆扎后投放', examples: ['报纸', '书本', '纸箱'] },
-      '报纸': { cat: 'recyclable', name: '可回收物', tip: '捆扎整齐后投放' },
-      '纸箱': { cat: 'recyclable', name: '可回收物', tip: '拆解折叠后投放，去除胶带' },
-      '快递盒': { cat: 'recyclable', name: '可回收物', tip: '拆解折叠，去除胶带后投放' },
-      '玻璃': { cat: 'recyclable', name: '可回收物', tip: '小心轻放，避免破碎', examples: ['玻璃瓶', '玻璃杯', '窗户玻璃'] },
-      '玻璃瓶': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，小心轻放' },
-      '易拉罐': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，压扁后投放' },
-      '金属': { cat: 'recyclable', name: '可回收物', tip: '保持干燥，避免生锈', examples: ['铁罐', '铝罐', '金属工具'] },
-      '旧衣服': { cat: 'recyclable', name: '可回收物', tip: '清洗干净，干燥后投放' },
-      '旧鞋': { cat: 'recyclable', name: '可回收物', tip: '清洗干净后投放' },
-      '衣服': { cat: 'recyclable', name: '可回收物', tip: '清洗干净，干燥后投放' },
-      '书籍': { cat: 'recyclable', name: '可回收物', tip: '捆扎整齐后投放' },
-      '书本': { cat: 'recyclable', name: '可回收物', tip: '捆扎整齐后投放' },
-      '杂志': { cat: 'recyclable', name: '可回收物', tip: '捆扎整齐后投放' },
-      '牛奶盒': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，清洗晾干后投放' },
-      '塑料': { cat: 'recyclable', name: '可回收物', tip: '清洁干净的塑料制品可回收', examples: ['塑料桶', '塑料盆', '塑料玩具'] },
-      '铁罐': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，压扁后投放' },
-      '铝罐': { cat: 'recyclable', name: '可回收物', tip: '清空内容物，压扁后投放' },
-      '洗发水瓶': { cat: 'recyclable', name: '可回收物', tip: '清空内容物后投放' },
-
-      // 有害垃圾
-      '电池': { cat: 'hazardous', name: '有害垃圾', tip: '投放至专用有害垃圾收集容器，不要与其他垃圾混放', examples: ['干电池', '充电电池', '纽扣电池'] },
-      '废电池': { cat: 'hazardous', name: '有害垃圾', tip: '投放至专用有害垃圾收集容器' },
-      '充电电池': { cat: 'hazardous', name: '有害垃圾', tip: '投放至专用有害垃圾收集容器' },
-      '纽扣电池': { cat: 'hazardous', name: '有害垃圾', tip: '投放至专用有害垃圾收集容器' },
-      '干电池': { cat: 'hazardous', name: '有害垃圾', tip: '投放至专用有害垃圾收集容器' },
-      '灯管': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎', examples: ['日光灯', '节能灯', '荧光灯'] },
-      '日光灯': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎' },
-      '节能灯': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎' },
-      '荧光灯': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎' },
-      '药品': { cat: 'hazardous', name: '有害垃圾', tip: '连同包装一起投放至药品回收点', examples: ['过期药品', '废弃药品'] },
-      '过期药品': { cat: 'hazardous', name: '有害垃圾', tip: '连同包装一起投放至药品回收点' },
-      '废弃药品': { cat: 'hazardous', name: '有害垃圾', tip: '连同包装一起投放至药品回收点' },
-      '油漆': { cat: 'hazardous', name: '有害垃圾', tip: '密封包装，投放至专用收集点' },
-      '杀虫剂': { cat: 'hazardous', name: '有害垃圾', tip: '密封包装后投放' },
-      '温度计': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎导致汞泄漏', examples: ['水银温度计', '体温计'] },
-      '水银温度计': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎导致汞泄漏' },
-      '体温计': { cat: 'hazardous', name: '有害垃圾', tip: '小心轻放，避免破碎导致汞泄漏' },
-      '农药': { cat: 'hazardous', name: '有害垃圾', tip: '密封包装，投放至专用收集点' },
-      '指甲油': { cat: 'hazardous', name: '有害垃圾', tip: '密封后投放' },
-      '消毒剂': { cat: 'hazardous', name: '有害垃圾', tip: '密封包装后投放' },
-      '摩丝': { cat: 'hazardous', name: '有害垃圾', tip: '压力容器，属于有害垃圾' },
-      '血压计': { cat: 'hazardous', name: '有害垃圾', tip: '投放至专用收集点' },
-
-      // 厨余垃圾
-      '剩饭剩菜': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放，不要混入餐具', examples: ['剩饭', '剩菜', '菜汤'] },
-      '剩饭': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放' },
-      '剩菜': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放' },
-      '苹果核': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '果皮': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可', examples: ['香蕉皮', '橘子皮', '苹果皮'] },
-      '香蕉皮': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '橘子皮': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '苹果皮': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '西瓜皮': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '菜叶': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '菜根': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '蛋壳': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '鸡蛋壳': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '茶叶渣': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放' },
-      '咖啡渣': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放' },
-      '骨头': { cat: 'kitchen', name: '厨余垃圾', tip: '小骨头属于厨余垃圾，大骨头属于其他垃圾', examples: ['鱼骨头', '鸡骨头', '排骨'] },
-      '鱼骨头': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '鸡骨头': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '排骨': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '蟹壳': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '虾壳': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-      '过期面包': { cat: 'kitchen', name: '厨余垃圾', tip: '去除包装后投放' },
-      '过期食品': { cat: 'kitchen', name: '厨余垃圾', tip: '去除包装后投放' },
-      '花卉': { cat: 'kitchen', name: '厨余垃圾', tip: '凋谢的花卉属于厨余垃圾' },
-      '落叶': { cat: 'kitchen', name: '厨余垃圾', tip: '家庭绿植的落叶属于厨余垃圾' },
-      '中药药渣': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放' },
-      '菜汤': { cat: 'kitchen', name: '厨余垃圾', tip: '沥干水分后投放' },
-      '果核': { cat: 'kitchen', name: '厨余垃圾', tip: '直接投放即可' },
-
-      // 其他垃圾
-      '口罩': { cat: 'other', name: '其他垃圾', tip: '使用过的口罩请投放至其他垃圾，医疗机构使用过的除外' },
-      '卫生纸': { cat: 'other', name: '其他垃圾', tip: '卫生纸遇水即溶，不可回收' },
-      '餐巾纸': { cat: 'other', name: '其他垃圾', tip: '使用过的餐巾纸属于其他垃圾' },
-      '纸巾': { cat: 'other', name: '其他垃圾', tip: '使用过的纸巾属于其他垃圾' },
-      '湿巾': { cat: 'other', name: '其他垃圾', tip: '湿巾属于其他垃圾' },
-      '面巾纸': { cat: 'other', name: '其他垃圾', tip: '使用过的面巾纸属于其他垃圾' },
-      '烟蒂': { cat: 'other', name: '其他垃圾', tip: '熄灭后投放' },
-      '烟头': { cat: 'other', name: '其他垃圾', tip: '熄灭后投放' },
-      '尘土': { cat: 'other', name: '其他垃圾', tip: '装袋后投放' },
-      '头发': { cat: 'other', name: '其他垃圾', tip: '直接投放即可' },
-      '猫砂': { cat: 'other', name: '其他垃圾', tip: '装袋后投放' },
-      '宠物粪便': { cat: 'other', name: '其他垃圾', tip: '装袋后投放' },
-      '尿不湿': { cat: 'other', name: '其他垃圾', tip: '卷好装袋后投放' },
-      '卫生巾': { cat: 'other', name: '其他垃圾', tip: '包好后投放' },
-      '一次性餐具': { cat: 'other', name: '其他垃圾', tip: '清空内容物后投放' },
-      '一次性筷子': { cat: 'other', name: '其他垃圾', tip: '直接投放即可' },
-      '陶瓷': { cat: 'other', name: '其他垃圾', tip: '包装好后投放，避免划伤', examples: ['破旧陶瓷', '花瓶碎片'] },
-      '破旧陶瓷': { cat: 'other', name: '其他垃圾', tip: '包装好后投放' },
-      '花瓶碎片': { cat: 'other', name: '其他垃圾', tip: '包装好后投放' },
-      '镜子': { cat: 'other', name: '其他垃圾', tip: '镜子不属于可回收玻璃，请包装好后投放' },
-      '打火机': { cat: 'other', name: '其他垃圾', tip: '用尽燃料后投放' },
-      '创可贴': { cat: 'other', name: '其他垃圾', tip: '使用过的创可贴属于其他垃圾' },
-      '胶带': { cat: 'other', name: '其他垃圾', tip: '胶带属于其他垃圾' },
-      '大骨头': { cat: 'other', name: '其他垃圾', tip: '大骨头难以腐烂，属于其他垃圾', examples: ['猪大骨', '牛骨'] },
-      '猪大骨': { cat: 'other', name: '其他垃圾', tip: '大骨头难以腐烂，属于其他垃圾' },
-      '牛骨': { cat: 'other', name: '其他垃圾', tip: '大骨头难以腐烂，属于其他垃圾' },
-      '榴莲壳': { cat: 'other', name: '其他垃圾', tip: '榴莲壳太硬，属于其他垃圾' },
-      '椰子壳': { cat: 'other', name: '其他垃圾', tip: '椰子壳太硬，属于其他垃圾' },
-      '塑料袋': { cat: 'other', name: '其他垃圾', tip: '普通塑料袋属于其他垃圾，干净的可回收袋除外' },
-      '保鲜膜': { cat: 'other', name: '其他垃圾', tip: '保鲜膜属于其他垃圾' },
-      '外卖盒': { cat: 'other', name: '其他垃圾', tip: '清空内容物后投放，干净的可回收除外' },
-      '牙签': { cat: 'other', name: '其他垃圾', tip: '直接投放即可' },
-      '棉签': { cat: 'other', name: '其他垃圾', tip: '直接投放即可' },
-    };
-
-    // 分类详细信息
-    const CAT_INFO = {
-      recyclable: {
-        name: '可回收物',
-        desc: '适宜回收利用的生活废弃物，包括废纸、塑料、玻璃、金属、织物等。',
-        color: '#29b6f6',
-        items: ['废纸类（报纸、纸箱、书本）', '塑料（塑料瓶、塑料桶）', '玻璃（玻璃瓶、玻璃杯）', '金属（易拉罐、铁罐）', '织物（旧衣服、旧鞋）', '电器电子产品']
-      },
-      hazardous: {
-        name: '有害垃圾',
-        desc: '对人体健康或自然环境造成直接或潜在危害的废弃物，需要特殊处理。',
-        color: '#ef5350',
-        items: ['废电池（充电电池、纽扣电池）', '废灯管（日光灯、节能灯）', '废药品及其包装物', '废油漆、溶剂', '废杀虫剂、消毒剂', '废温度计、血压计']
-      },
-      kitchen: {
-        name: '厨余垃圾',
-        desc: '易腐烂的生物质废弃物，主要包括食材废料、剩饭剩菜、过期食品等。',
-        color: '#9ccc65',
-        items: ['食材废料（菜叶、果皮）', '剩饭剩菜', '过期食品', '瓜皮果核', '花卉绿植', '中药药渣']
-      },
-      other: {
-        name: '其他垃圾',
-        desc: '除可回收物、有害垃圾、厨余垃圾以外的其他生活废弃物。',
-        color: '#90a4ae',
-        items: ['卫生纸、餐巾纸', '烟蒂', '一次性餐具', '陶瓷碎片', '大骨头、硬壳类', '尘土、头发']
-      }
-    };
-
-    // ==================== 状态管理 ====================
-    let isTyping = false;
-
-    // ==================== DOM 元素 ====================
-    const chatMessages = document.getElementById('chatMessages');
-    const chatInput = document.getElementById('chatInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const voiceBtn = document.getElementById('voiceBtn');
-    const clearBtn = document.getElementById('clearBtn');
-
-    // ==================== 核心函数 ====================
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-delayed { animation: float 6s ease-in-out 1s infinite; }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+        .typing-dot:nth-child(1) { animation: typing 1.4s infinite 0s; }
+        .typing-dot:nth-child(2) { animation: typing 1.4s infinite 0.2s; }
+        .typing-dot:nth-child(3) { animation: typing 1.4s infinite 0.4s; }
+        
+        .chat-bubble {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.3s ease forwards;
+        }
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 自定义滚动条 */
+        .chat-container::-webkit-scrollbar { width: 4px; }
+        .chat-container::-webkit-scrollbar-track { background: #FDFBF7; }
+        .chat-container::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-[#FDFBF7] antialiased selection:bg-gray-900 selection:text-white">
     
-    // 查找垃圾信息
-    function findItem(query) {
-      const q = query.toLowerCase().trim();
-      
-      const patterns = [
-        /^(.+?)是什么垃圾/,
-        /^(.+?)怎么(扔|丢|处理|分类)/,
-        /^(.+?)属于什么/,
-        /^什么是(.+)/,
-        /^请问(.+)/,
-        /^(.+?)是(可回收|有害|厨余|其他)垃圾吗/,
-      ];
-      
-      let itemName = query;
-      for (const p of patterns) {
-        const m = q.match(p);
-        if (m) { itemName = m[1]; break; }
-      }
-      
-      // 直接匹配
-      for (const key in GARBAGE_DB) {
-        if (key.toLowerCase() === itemName.toLowerCase()) {
-          return { key, ...GARBAGE_DB[key] };
-        }
-      }
-      
-      // 模糊匹配
-      for (const key in GARBAGE_DB) {
-        if (itemName.includes(key) || key.includes(itemName)) {
-          return { key, ...GARBAGE_DB[key] };
-        }
-      }
-      
-      // 关键词匹配
-      const kw = { '电池': '电池', '电': '电池', '瓶': '塑料瓶', '塑料': '塑料瓶', '纸': '废纸', '玻璃': '玻璃', '饭': '剩饭剩菜', '菜': '剩饭剩菜', '果': '果皮', '药': '过期药品', '口': '口罩', '灯': '灯管', '衣服': '旧衣服', '书': '书籍', '罐': '易拉罐' };
-      
-      for (const [k, v] of Object.entries(kw)) {
-        if (q.includes(k)) return { key: v, ...GARBAGE_DB[v] };
-      }
-      
-      return null;
-    }
-
-    // 处理输入
-    function processInput(input) {
-      const q = input.toLowerCase().trim();
-      
-      if (q.includes('可回收') && (q.includes('有哪') || q.includes('包括') || q.includes('什么'))) {
-        return genCategoryResponse('recyclable');
-      }
-      if (q.includes('有害') && (q.includes('有哪') || q.includes('包括') || q.includes('什么'))) {
-        return genCategoryResponse('hazardous');
-      }
-      if (q.includes('厨余') && (q.includes('有哪') || q.includes('包括') || q.includes('什么') || q.includes('怎么处理'))) {
-        return genCategoryResponse('kitchen');
-      }
-      if (q.includes('其他') && (q.includes('定义') || q.includes('包括') || q.includes('什么'))) {
-        return genCategoryResponse('other');
-      }
-      
-      if ((q.includes('分类') && (q.includes('有哪') || q.includes('几种'))) || q.includes('四大分类')) {
-        return genAllCats();
-      }
-      
-      if (q.includes('你好') || q.includes('您好') || q.includes('hi') || q.includes('hello')) {
-        return `<p>你好！我是EcoBot垃圾分类助手。</p><p class="mt-2">请告诉我您想了解什么物品的分类，我会为您提供详细的分类信息和投放建议。</p>`;
-      }
-      
-      if (q.includes('谢谢') || q.includes('感谢')) {
-        return `<p>不客气！很高兴能帮到您。</p><p class="mt-2 text-[var(--muted)] text-sm">如有其他垃圾分类问题，随时可以问我哦！</p>`;
-      }
-      
-      const info = findItem(input);
-      if (info) return genItemResponse(info);
-      
-      return null;
-    }
-
-    // 生成物品回答
-    function genItemResponse(info) {
-      const cat = CAT_INFO[info.cat];
-      let r = `<div class="cat-tag cat-${info.cat}">${cat.name}</div>`;
-      r += `<p class="mb-3"><strong class="text-[var(--accent)]">"${info.key}"</strong> 属于 <strong style="color: ${cat.color}">${info.name}</strong>。</p>`;
-      r += `<p class="text-sm text-[var(--muted)] mb-3 bg-[rgba(0,0,0,0.25)] p-4 rounded-xl">投放提示：${info.tip}</p>`;
-      
-      if (info.examples && info.examples.length > 0) {
-        r += `<div class="example-list">
-          <p class="text-xs text-[var(--muted)] mb-2">同类物品示例：</p>
-          <div>${info.examples.map(ex => `<span class="example-chip">${ex}</span>`).join('')}</div>
-        </div>`;
-      }
-      
-      return r;
-    }
-
-    // 生成分类型绍
-    function genCategoryResponse(cat) {
-      const info = CAT_INFO[cat];
-      let r = `<div class="cat-tag cat-${cat}">${info.name}</div>`;
-      r += `<p class="mb-4">${info.desc}</p>`;
-      r += `<div class="mt-4"><p class="text-sm text-[var(--muted)] mb-3 font-medium">常见物品：</p><ul class="space-y-2 text-sm">`;
-      r += info.items.map(item => `
-        <li class="flex items-start gap-3">
-          <span class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style="background: ${info.color}"></span>
-          <span>${item}</span>
-        </li>
-      `).join('');
-      r += `</ul></div>`;
-      return r;
-    }
-
-    // 生成所有分类
-    function genAllCats() {
-      let r = `<p class="mb-4">生活垃圾主要分为以下四大类：</p>`;
-      r += `<div class="grid grid-cols-2 gap-3">`;
-      for (const [k, info] of Object.entries(CAT_INFO)) {
-        r += `<div class="p-4 rounded-xl border border-[var(--border)]" style="background: ${info.color}18">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-2.5 h-2.5 rounded-full" style="background: ${info.color}"></span>
-            <span class="font-semibold" style="color: ${info.color}">${info.name}</span>
-          </div>
-          <p class="text-xs text-[var(--muted)] leading-relaxed">${info.desc.slice(0, 35)}...</p>
-        </div>`;
-      }
-      r += `</div>`;
-      return r;
-    }
-
-    // 添加消息
-    function addMsg(content, isUser = false, isHTML = false) {
-      const div = document.createElement('div');
-      div.className = `msg ${isUser ? 'msg-user' : 'msg-bot'}`;
-      
-      if (isUser) {
-        div.innerHTML = isHTML ? content : escapeHtml(content);
-      } else {
-        div.innerHTML = `
-          <div class="flex items-start gap-4">
-            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-[rgba(0,230,118,0.25)]">
-              <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-              </svg>
+    <!-- 导航栏 -->
+    <nav class="max-w-[1440px] mx-auto px-6 md:px-12 py-6 flex items-center justify-between">
+        <a href="#" class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-[#004BB0] rounded-lg flex items-center justify-center">
+                <i data-lucide="recycle" class="w-5 h-5 text-white"></i>
             </div>
-            <div class="flex-1">
+            <span class="text-xl font-semibold tracking-tight text-gray-900">垃圾分类助手</span>
+        </a>
+        <div class="hidden md:flex items-center gap-8">
+            <a href="#categories" class="text-gray-600 hover:text-gray-900 transition-colors duration-150">分类指南</a>
+            <a href="#chat" class="text-gray-600 hover:text-gray-900 transition-colors duration-150">智能问答</a>
+            <a href="#tips" class="text-gray-600 hover:text-gray-900 transition-colors duration-150">环保小贴士</a>
+        </div>
+        <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <i data-lucide="menu" class="w-6 h-6 text-gray-700"></i>
+        </button>
+    </nav>
+
+    <!-- Hero区域 -->
+    <section class="max-w-[1440px] mx-auto px-6 md:px-12 pt-8 pb-16 md:pb-24">
+        <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+            <!-- 左侧内容 -->
+            <div class="flex-1 text-center lg:text-left">
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-semibold text-gray-900 leading-[1.1] tracking-tight mb-6">
+                    智能垃圾分类
+                    <span class="font-serif italic text-[#004BB0]">问答助手</span>
+                </h1>
+                <p class="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
+                    不知道垃圾怎么分类？输入垃圾名称，立即获取准确答案。支持查询各种生活垃圾分类，让您轻松成为环保达人。
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                    <a href="#chat" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 hover:scale-105 transition-all duration-150 group">
+                        开始查询
+                        <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    <a href="#categories" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-900 rounded-full font-medium border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-150">
+                        分类指南
+                    </a>
+                </div>
+                
+                <!-- 统计数据 -->
+                <div class="flex items-center justify-center lg:justify-start gap-8 mt-12">
+                    <div>
+                        <div class="text-3xl font-semibold text-gray-900">1000+</div>
+                        <div class="text-sm text-gray-500">垃圾种类</div>
+                    </div>
+                    <div class="w-px h-12 bg-gray-200"></div>
+                    <div>
+                        <div class="text-3xl font-semibold text-gray-900">4</div>
+                        <div class="text-sm text-gray-500">分类标准</div>
+                    </div>
+                    <div class="w-px h-12 bg-gray-200"></div>
+                    <div>
+                        <div class="text-3xl font-semibold text-gray-900">99%</div>
+                        <div class="text-sm text-gray-500">准确率</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧卡片 -->
+            <div class="flex-1 relative">
+                <div class="relative">
+                    <!-- 主卡片 -->
+                    <div class="bg-white rounded-3xl shadow-xl p-6 max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-500">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-[#004BB0] to-[#6B21A8] rounded-2xl flex items-center justify-center">
+                                <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">AI分类助手</div>
+                                <div class="text-sm text-green-600 flex items-center gap-1">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                    在线服务中
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 示例对话 -->
+                        <div class="space-y-3 mb-4">
+                            <div class="flex justify-end">
+                                <div class="bg-[#F4F2EE] rounded-2xl rounded-br-md px-4 py-2 text-sm text-gray-800 max-w-[80%]">
+                                    喝完的奶茶杯是什么垃圾？
+                                </div>
+                            </div>
+                            <div class="flex justify-start">
+                                <div class="bg-[#004BB0] rounded-2xl rounded-bl-md px-4 py-3 text-sm text-white max-w-[85%]">
+                                    <div class="mb-2">奶茶杯属于<strong>其他垃圾</strong></div>
+                                    <div class="text-xs text-blue-200">💡 小提示：请倒空液体，吸管单独投放</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 输入框 -->
+                        <div class="flex gap-2">
+                            <input type="text" placeholder="输入垃圾名称..." class="flex-1 px-4 py-3 bg-[#F4F2EE] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#004BB0]/20">
+                            <button class="px-4 py-3 bg-[#004BB0] text-white rounded-xl hover:bg-[#033476] transition-colors">
+                                <i data-lucide="send" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 浮动小卡片 -->
+                    <div class="absolute -top-4 -right-4 bg-white rounded-2xl shadow-lg p-4 animate-float hidden md:block">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">分类成功</span>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg p-4 animate-float-delayed hidden md:block">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="zap" class="w-5 h-5 text-orange-500"></i>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">秒速响应</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 分类指南区域 -->
+    <section id="categories" class="bg-[#F4F2EE] py-16 md:py-24">
+        <div class="max-w-[1440px] mx-auto px-6 md:px-12">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-semibold text-gray-900 tracking-tight mb-4">
+                    垃圾分类<span class="font-serif italic">四大类别</span>
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">了解垃圾分类的基本知识，正确投放从我做起</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 可回收物 -->
+                <div class="bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-300 group cursor-pointer">
+                    <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="recycle" class="w-8 h-8 text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">可回收物</h3>
+                    <p class="text-gray-600 text-sm mb-4">可循环利用的生活废弃物</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">纸张</span>
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">塑料</span>
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">金属</span>
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">玻璃</span>
+                    </div>
+                </div>
+                
+                <!-- 有害垃圾 -->
+                <div class="bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-300 group cursor-pointer">
+                    <div class="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="alert-triangle" class="w-8 h-8 text-red-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">有害垃圾</h3>
+                    <p class="text-gray-600 text-sm mb-4">对人体或环境有害的废弃物</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-red-50 text-red-500 text-xs rounded-full">电池</span>
+                        <span class="px-3 py-1 bg-red-50 text-red-500 text-xs rounded-full">灯管</span>
+                        <span class="px-3 py-1 bg-red-50 text-red-500 text-xs rounded-full">药品</span>
+                        <span class="px-3 py-1 bg-red-50 text-red-500 text-xs rounded-full">油漆</span>
+                    </div>
+                </div>
+                
+                <!-- 厨余垃圾 -->
+                <div class="bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-300 group cursor-pointer">
+                    <div class="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="leaf" class="w-8 h-8 text-green-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">厨余垃圾</h3>
+                    <p class="text-gray-600 text-sm mb-4">易腐烂的生物质废弃物</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs rounded-full">剩菜剩饭</span>
+                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs rounded-full">果皮</span>
+                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs rounded-full">菜叶</span>
+                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs rounded-full">蛋壳</span>
+                    </div>
+                </div>
+                
+                <!-- 其他垃圾 -->
+                <div class="bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-300 group cursor-pointer">
+                    <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="trash-2" class="w-8 h-8 text-gray-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">其他垃圾</h3>
+                    <p class="text-gray-600 text-sm mb-4">除以上三类外的其他废弃物</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">烟蒂</span>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">尘土</span>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">陶瓷</span>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">卫生纸</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 智能问答区域 -->
+    <section id="chat" class="py-16 md:py-24">
+        <div class="max-w-[1440px] mx-auto px-6 md:px-12">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-20">
+                <!-- 左侧说明 -->
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-semibold text-gray-900 tracking-tight mb-6">
+                        智能问答<span class="font-serif italic">系统</span>
+                    </h2>
+                    <p class="text-gray-600 text-lg leading-relaxed mb-8">
+                        输入您想要查询的垃圾名称，系统将智能识别并返回准确的分类结果。支持模糊搜索和常见别名识别。
+                    </p>
+                    
+                    <!-- 功能特点 -->
+                    <div class="space-y-4 mb-8">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 bg-[#004BB0]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="search" class="w-5 h-5 text-[#004BB0]"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900 mb-1">智能搜索</h4>
+                                <p class="text-sm text-gray-600">支持模糊匹配，即使输入别名也能准确识别</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 bg-[#004BB0]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="lightbulb" class="w-5 h-5 text-[#004BB0]"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900 mb-1">投放建议</h4>
+                                <p class="text-sm text-gray-600">提供专业的分类建议和投放小贴士</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 bg-[#004BB0]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="history" class="w-5 h-5 text-[#004BB0]"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900 mb-1">历史记录</h4>
+                                <p class="text-sm text-gray-600">自动保存查询记录，方便随时查看</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 热门搜索 -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-3">热门搜索</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="quickSearch('外卖盒')" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                外卖盒
+                            </button>
+                            <button onclick="quickSearch('过期药品')" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                过期药品
+                            </button>
+                            <button onclick="quickSearch('旧衣服')" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                旧衣服
+                            </button>
+                            <button onclick="quickSearch('快递盒')" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                快递盒
+                            </button>
+                            <button onclick="quickSearch('口罩')" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                口罩
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧聊天界面 -->
+                <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                    <!-- 聊天头部 -->
+                    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="w-10 h-10 bg-gradient-to-br from-[#004BB0] to-[#6B21A8] rounded-xl flex items-center justify-center">
+                                    <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">AI分类助手</div>
+                                <div class="text-xs text-gray-500">随时为您服务</div>
+                            </div>
+                        </div>
+                        <button onclick="clearChat()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="清空对话">
+                            <i data-lucide="trash-2" class="w-5 h-5 text-gray-400"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 聊天内容区 -->
+                    <div id="chatContainer" class="chat-container h-[400px] overflow-y-auto p-6 space-y-4 bg-[#FDFBF7]">
+                        <!-- 欢迎消息 -->
+                        <div class="chat-bubble flex justify-start">
+                            <div class="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm max-w-[85%]">
+                                <p class="text-gray-800">👋 您好！我是智能垃圾分类助手。</p>
+                                <p class="text-gray-600 text-sm mt-2">请输入您想查询的垃圾名称，我会告诉您它属于哪个类别。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 输入区域 -->
+                    <div class="p-4 border-t border-gray-100 bg-white">
+                        <div class="flex gap-3">
+                            <input 
+                                type="text" 
+                                id="chatInput" 
+                                placeholder="输入垃圾名称，如：电池、香蕉皮..." 
+                                class="flex-1 px-4 py-3 bg-[#F4F2EE] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#004BB0]/20 transition-all"
+                                onkeypress="handleKeyPress(event)"
+                            >
+                            <button 
+                                onclick="sendMessage()" 
+                                class="px-5 py-3 bg-[#004BB0] text-white rounded-xl hover:bg-[#033476] transition-colors flex items-center gap-2"
+                            >
+                                <span class="hidden sm:inline">发送</span>
+                                <i data-lucide="send" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 常见问题区域 -->
+    <section id="tips" class="bg-[#F4F2EE] py-16 md:py-24">
+        <div class="max-w-[1440px] mx-auto px-6 md:px-12">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-semibold text-gray-900 tracking-tight mb-4">
+                    常见<span class="font-serif italic">问题</span>解答
+                </h2>
+                <p class="text-gray-600">快速了解垃圾分类常见问题</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- FAQ卡片 -->
+                <div class="bg-white rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="coffee" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">奶茶杯怎么扔？</h3>
+                    <p class="text-sm text-gray-600">倒空液体后，杯体属于其他垃圾，杯盖视材质而定（塑料盖可回收）。</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="battery" class="w-5 h-5 text-red-500"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">废旧电池怎么处理？</h3>
+                    <p class="text-sm text-gray-600">一次性干电池属于其他垃圾；充电电池、纽扣电池属于有害垃圾。</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="utensils" class="w-5 h-5 text-green-500"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">外卖盒怎么分类？</h3>
+                    <p class="text-sm text-gray-600">干净的外卖盒可回收；有食物残渣的属于厨余垃圾+其他垃圾混合投放。</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="shirt" class="w-5 h-5 text-purple-500"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">旧衣服怎么处理？</h3>
+                    <p class="text-sm text-gray-600">干净的旧衣物属于可回收物，建议投放到旧衣回收箱或捐赠。</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="pill" class="w-5 h-5 text-yellow-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">过期药品怎么扔？</h3>
+                    <p class="text-sm text-gray-600">过期药品及其包装都属于有害垃圾，需要投放到有害垃圾收集点。</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="package" class="w-5 h-5 text-gray-500"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">快递包装怎么分类？</h3>
+                    <p class="text-sm text-gray-600">纸箱属于可回收物；塑料袋、气泡膜属于其他垃圾；胶带需撕下单独处理。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="max-w-[1440px] mx-auto px-6 md:px-12">
+            <div class="grid md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-[#004BB0] rounded-lg flex items-center justify-center">
+                            <i data-lucide="recycle" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <span class="text-lg font-semibold">垃圾分类助手</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">让垃圾分类变得简单，为环保贡献力量。</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium mb-4">快速链接</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#categories" class="hover:text-white transition-colors">分类指南</a></li>
+                        <li><a href="#chat" class="hover:text-white transition-colors">智能问答</a></li>
+                        <li><a href="#tips" class="hover:text-white transition-colors">常见问题</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium mb-4">分类标准</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>可回收物（蓝色）</li>
+                        <li>有害垃圾（红色）</li>
+                        <li>厨余垃圾（绿色）</li>
+                        <li>其他垃圾（灰色）</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium mb-4">联系方式</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>服务热线：12345</li>
+                        <li>工作时间：全天候服务</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
+                <p>© 2024 垃圾分类助手 · 为绿色地球贡献力量</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 初始化图标
+        lucide.createIcons();
+        
+        // 垃圾分类数据库
+        const garbageDatabase = {
+            // 可回收物
+            '可回收物': {
+                keywords: ['纸张', '纸箱', '报纸', '书本', '杂志', '快递盒', '纸袋', '信封', '名片', '打印纸', 
+                          '塑料瓶', '塑料袋', '塑料盒', '塑料桶', '塑料玩具', '塑料衣架', 'pvc管',
+                          '玻璃瓶', '玻璃杯', '玻璃窗', '镜子', '玻璃制品',
+                          '易拉罐', '铁罐', '铝罐', '金属工具', '铁丝', '铜线', '金属衣架',
+                          '旧衣服', '床单', '被套', '毛巾', '窗帘', '鞋帽', '包', '毛绒玩具',
+                          '牛奶盒', '饮料瓶', '洗发水瓶', '沐浴露瓶', '食用油桶', '易拉罐', '铝箔'],
+                category: '可回收物',
+                color: 'blue',
+                icon: 'recycle',
+                tips: '请保持物品清洁干燥，压扁后投放更环保哦！'
+            },
+            // 有害垃圾
+            '有害垃圾': {
+                keywords: ['电池', '蓄电池', '充电电池', '纽扣电池', '锂电池', '干电池',
+                          '灯管', '灯泡', '荧光灯', '节能灯', 'led灯',
+                          '药品', '过期药品', '药品包装', '药瓶', '药片', '药水',
+                          '油漆', '涂料', '油漆桶', '稀释剂', '胶水',
+                          '农药', '杀虫剂', '消毒剂', '老鼠药',
+                          '温度计', '体温计', '血压计', '水银',
+                          '指甲油', '洗甲水', '染发剂',
+                          '墨盒', '硒鼓', '相片', '胶卷', 'x光片'],
+                category: '有害垃圾',
+                color: 'red',
+                icon: 'alert-triangle',
+                tips: '有害垃圾需要单独投放，避免污染环境！'
+            },
+            // 厨余垃圾
+            '厨余垃圾': {
+                keywords: ['剩菜', '剩饭', '菜叶', '菜根', '菜皮', '果皮', '果核', '水果', '蔬菜',
+                          '蛋壳', '蛋皮', '鸡蛋壳', '鸭蛋壳',
+                          '骨头', '鸡骨', '鱼骨', '排骨', '虾壳', '蟹壳', '贝壳',
+                          '茶叶', '茶叶渣', '咖啡渣', '中药渣',
+                          '花朵', '盆栽', '落叶', '树枝', '植物',
+                          '米饭', '面条', '馒头', '面包', '蛋糕',
+                          '肉', '肉类', '鱼', '虾',
+                          '食用油', '废弃食用油',
+                          '香蕉皮', '苹果核', '西瓜皮', '橘子皮', '橙子皮', '柚子皮', '菠萝皮', '土豆皮'],
+                category: '厨余垃圾',
+                color: 'green',
+                icon: 'leaf',
+                tips: '厨余垃圾请沥干水分后投放，避免混入其他垃圾！'
+            },
+            // 其他垃圾
+            '其他垃圾': {
+                keywords: ['烟蒂', '烟头', '烟灰', '烟盒',
+                          '尘土', '灰尘', '头发', '宠物毛发',
+                          '卫生纸', '餐巾纸', '湿巾', '纸巾', '面巾纸', '手帕纸', '厨房纸',
+                          '尿布', '尿不湿', '卫生巾', '纸尿裤',
+                          '陶瓷', '瓦片', '花盆', '瓷砖', '马桶',
+                          '一次性餐具', '一次性杯子', '一次性筷子', '外卖盒', '餐盒',
+                          '口罩', '手套', '棉签', '创可贴',
+                          '快递袋', '气泡膜', '泡沫箱', '胶带', '胶布',
+                          '破布', '拖把', '扫把', '旧毛巾', '抹布',
+                          '猫砂', '宠物粪便',
+                          '奶茶杯', '奶茶', '咖啡杯', '纸杯', '塑料杯',
+                          '保鲜膜', '保鲜袋', '塑料袋脏的'],
+                category: '其他垃圾',
+                color: 'gray',
+                icon: 'trash-2',
+                tips: '其他垃圾请尽量压缩体积后投放！'
+            }
+        };
+        
+        // 特殊情况处理
+        const specialCases = {
+            '电池': {
+                '一次性干电池': '其他垃圾',
+                '干电池': '其他垃圾',
+                '充电电池': '有害垃圾',
+                '纽扣电池': '有害垃圾',
+                '蓄电池': '有害垃圾',
+                '锂电池': '有害垃圾'
+            },
+            '口罩': {
+                '普通口罩': '其他垃圾',
+                '一次性口罩': '其他垃圾',
+                '医用口罩': '其他垃圾'
+            },
+            '塑料袋': {
+                '干净的塑料袋': '可回收物',
+                '脏的塑料袋': '其他垃圾',
+                '食品包装袋': '其他垃圾'
+            },
+            '外卖盒': {
+                '干净的外卖盒': '可回收物',
+                '有油污的外卖盒': '其他垃圾'
+            }
+        };
+        
+        // 分类匹配函数
+        function classifyGarbage(query) {
+            query = query.toLowerCase().trim();
+            
+            // 遍历所有分类
+            for (const [categoryName, data] of Object.entries(garbageDatabase)) {
+                for (const keyword of data.keywords) {
+                    if (query.includes(keyword.toLowerCase())) {
+                        return {
+                            found: true,
+                            category: data.category,
+                            color: data.color,
+                            icon: data.icon,
+                            tips: data.tips,
+                            matchedKeyword: keyword
+                        };
+                    }
+                }
+            }
+            
+            return {
+                found: false,
+                message: '抱歉，没有找到相关垃圾分类信息。请尝试输入其他垃圾名称，或描述更具体一些。'
+            };
+        }
+        
+        // 获取分类颜色样式
+        function getCategoryStyle(color) {
+            const styles = {
+                blue: {
+                    bg: 'bg-blue-50',
+                    text: 'text-blue-600',
+                    border: 'border-blue-200',
+                    badge: 'bg-blue-500'
+                },
+                red: {
+                    bg: 'bg-red-50',
+                    text: 'text-red-500',
+                    border: 'border-red-200',
+                    badge: 'bg-red-500'
+                },
+                green: {
+                    bg: 'bg-green-50',
+                    text: 'text-green-600',
+                    border: 'border-green-200',
+                    badge: 'bg-green-500'
+                },
+                gray: {
+                    bg: 'bg-gray-100',
+                    text: 'text-gray-600',
+                    border: 'border-gray-200',
+                    badge: 'bg-gray-500'
+                }
+            };
+            return styles[color] || styles.gray;
+        }
+        
+        // 发送消息
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 添加用户消息
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // 显示输入中状态
+            showTyping();
+            
+            // 模拟AI响应延迟
+            setTimeout(() => {
+                hideTyping();
+                const result = classifyGarbage(message);
+                
+                if (result.found) {
+                    addMessage(generateResultHTML(result), 'bot', true);
+                } else {
+                    addMessage(result.message, 'bot');
+                }
+            }, 800);
+        }
+        
+        // 生成结果HTML
+        function generateResultHTML(result) {
+            const style = getCategoryStyle(result.color);
+            return `
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 ${style.badge} text-white text-sm rounded-full">${result.category}</span>
+                    </div>
+                    <p class="text-gray-700">${result.matchedKeyword}属于<strong class="${style.text}">${result.category}</strong></p>
+                    <div class="flex items-start gap-2 p-3 ${style.bg} rounded-lg border ${style.border}">
+                        <i data-lucide="lightbulb" class="w-4 h-4 ${style.text} flex-shrink-0 mt-0.5"></i>
+                        <p class="text-sm ${style.text}">${result.tips}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 添加消息到聊天区域
+        function addMessage(content, type, isHTML = false) {
+            const container = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-bubble flex ' + (type === 'user' ? 'justify-end' : 'justify-start');
+            
+            const bubbleClass = type === 'user' 
+                ? 'bg-[#004BB0] text-white rounded-2xl rounded-br-md' 
+                : 'bg-white shadow-sm rounded-2xl rounded-bl-md';
+            
+            messageDiv.innerHTML = `
+                <div class="${bubbleClass} px-4 py-3 max-w-[85%]">
+                    ${isHTML ? content : `<p class="${type === 'user' ? 'text-white' : 'text-gray-800'}">${content}</p>`}
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            // 重新初始化图标
+            lucide.createIcons();
+        }
+        
+        // 显示输入中状态
+        function showTyping() {
+            const container = document.getElementById('chatContainer');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'chat-bubble flex justify-start';
+            typingDiv.innerHTML = `
+                <div class="bg-white shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // 隐藏输入中状态
+        function hideTyping() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) typing.remove();
+        }
+        
+        // 快速搜索
+        function quickSearch(keyword) {
+            document.getElementById('chatInput').value = keyword;
+            sendMessage();
+        }
+        
+        // 清空对话
+        function clearChat() {
+            const container = document.getElementById('chatContainer');
+            container.innerHTML = `
+                <div class="chat-bubble flex justify-start">
+                    <div class="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm max-w-[85%]">
+                        <p class="text-gray-800">👋 您好！我是智能垃圾分类助手。</p>
+                        <p class="text-gray-600 text-sm mt-2">请输入您想查询的垃圾名称，我会告诉您它属于哪个类别。</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 按键处理
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>
